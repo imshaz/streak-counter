@@ -7,6 +7,16 @@ describe("Streak counter", () => {
   beforeEach(() => {
     const mockJSDom = new JSDOM("", { url: "https://localhost" });
     mockLocalStorage = mockJSDom.window.localStorage;
+
+    const date = new Date("8/7/2022");
+
+    const streak = {
+      currentCount: 1,
+      startDate: formattedDate(date),
+      lastLoginDate: formattedDate(date),
+    };
+
+    mockLocalStorage.setItem("streak", JSON.stringify(streak));
   });
 
   afterEach(() => {
@@ -38,15 +48,55 @@ describe("Streak counter", () => {
 
     streakCounter(mockLocalStorage, date);
 
-    const streakString = mockLocalStorage.getItem(key);
-
-    expect(streakString).not.toBeNull();
+    const streakAsString = mockLocalStorage.getItem(key);
+    expect(streakAsString).not.toBeNull();
   });
 
   it("should return the streak from localStorage", () => {
-    const date = new Date();
+    const date = new Date("8/7/2022");
     const streak = streakCounter(mockLocalStorage, date);
 
     expect(streak.startDate).toBe("8/7/2022");
+  });
+
+  it("should increment the streak", () => {
+    const date = new Date("8/8/2022");
+
+    const streak = streakCounter(mockLocalStorage, date);
+    expect(streak.currentCount).toBe(2);
+  });
+
+  it("should not increment the streak when login days not consecutive", () => {
+    const date = new Date("8/14/2021");
+    const streak = streakCounter(mockLocalStorage, date);
+    expect(streak.currentCount).toBe(1);
+  });
+
+  it("should reset if not consecutive", () => {
+    const date = new Date("8/8/2022");
+    const streak = streakCounter(mockLocalStorage, date);
+
+    expect(streak.currentCount).toBe(2);
+    // skip a day break the streak
+    const updatedDate = new Date("8/15/2022");
+    const streakUpdated = streakCounter(mockLocalStorage, updatedDate);
+    expect(streakUpdated.currentCount).toBe(1);
+  });
+
+  it("should save the reset strek to localStorage", () => {
+    const key = "streak";
+    const date = new Date("8/8/2022");
+    streakCounter(mockLocalStorage, date);
+
+    const dateUpdated = new Date("8/20/2022");
+    const streakUpdated = streakCounter(mockLocalStorage, dateUpdated);
+
+    try {
+      const streakAsString = mockLocalStorage.getItem(key);
+      const streak = JSON.parse(streakAsString || "");
+      expect(streak.currentCount).toBe(1);
+    } catch (error) {
+      console.log("someThing went wrong");
+    }
   });
 });
